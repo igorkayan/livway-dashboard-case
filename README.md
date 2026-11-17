@@ -1,6 +1,6 @@
 # LivWay Operations: painel de pedidos para uma trading de importação
 
-> Sistema interno, em produção e em uso diário, que centraliza pedidos, follow-ups, parceiros, embarques e relatórios de uma trading de importação. Projetado, desenvolvido, publicado e mantido por mim, do zero, de ponta a ponta.
+> Sistema interno (o "hub" da empresa), em produção e em uso diário, que centraliza pedidos, follow-ups, parceiros, embarques e relatórios de uma trading de importação, com IA que lê os e-mails da operação e mantém cada pedido atualizado. Projetado, desenvolvido, publicado e mantido por mim, do zero, de ponta a ponta.
 
 ![Status](https://img.shields.io/badge/status-em%20produção-2e7d32)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs)
@@ -8,6 +8,8 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript&logoColor=fff)
 ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers%20·%20D1%20·%20R2-f38020?logo=cloudflare&logoColor=fff)
 ![PWA](https://img.shields.io/badge/PWA-iPhone%20e%20Android-5a0fc8)
+![Windows](https://img.shields.io/badge/App-Windows%20(Electron)-0078d4?logo=windows&logoColor=fff)
+![Workers AI](https://img.shields.io/badge/IA-Cloudflare%20Workers%20AI-f38020?logo=cloudflare&logoColor=fff)
 
 ![Meu dia: os follow-ups do dia, separados em atrasados, para hoje e próximos dias](imagens/01-meu-dia.png)
 
@@ -19,25 +21,26 @@
 
 | | |
 |---|---|
-| **O quê** | Painel web e app instalável para acompanhar pedidos de importação, do pedido à entrega |
+| **O quê** | Painel web, app no celular (PWA) e app para Windows para acompanhar pedidos de importação, do pedido à entrega |
 | **Para quem** | Equipe interna da trading e parceiros externos (agentes e fábricas), cada um com o seu nível de acesso |
 | **Meu papel** | Tudo: levantamento com a operação, telas, banco de dados, back-end, front-end, segurança, publicação e manutenção |
-| **Stack** | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Cloudflare Workers, D1 (SQLite) e R2 |
-| **Tamanho** | 28 rotas de API, 17 migrações de banco, teste de fluxo ponta a ponta com mais de 40 cenários |
-| **Ritmo** | Da v7 à v10.1, com mais de 10 publicações em produção só em outubro de 2026, sem perda de dados |
+| **Stack** | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Cloudflare Workers, D1 (SQLite), R2 e Workers AI; Electron no Windows; Google Apps Script no Gmail |
+| **Tamanho** | 32 rotas de API, 22 migrações de banco, teste de fluxo ponta a ponta cobrindo a API inteira |
+| **Ritmo** | Da v7 à v10.11, com dezenas de publicações em produção entre outubro e novembro de 2026, sem perda de dados |
 
 ## O problema
 
-A operação acompanhava dezenas de pedidos de importação ao mesmo tempo em planilhas, e-mails e mensagens soltas. Isso trazia quatro dores:
+A operação acompanhava dezenas de pedidos de importação ao mesmo tempo em planilhas, e-mails e mensagens soltas. Isso trazia cinco dores:
 
 - **Ninguém sabia o que precisava de atenção hoje.** Pedidos parados passavam dias sem contato.
 - **Parceiros externos precisavam ver parte dos pedidos**, mas sem enxergar dados internos como cliente, fornecedor e margem.
 - **As atualizações dos agentes de carga chegavam só por e-mail**, misturadas na caixa de entrada.
-- **O relatório mensal de embarques era montado à mão** a partir de várias fontes.
+- **O relatório mensal de embarques e o relatório diário ao parceiro na China eram montados à mão** a partir de várias caixas de e-mail.
+- **Saber onde estava cada navio** exigia abrir o site de rastreio pedido por pedido.
 
 ## A solução
 
-Um painel web único, instalável no celular, onde cada pedido concentra dados, etapas, conversa, arquivos, embarque e histórico, com permissões finas para cada tipo de usuário e uma tela inicial que diz o que fazer hoje.
+Um hub único, no navegador, no celular e no Windows, onde cada pedido concentra dados, etapas, conversa, arquivos, embarque, navio no mapa e histórico, com permissões finas para cada tipo de usuário e uma tela inicial que diz o que fazer hoje. Os e-mails da operação entram sozinhos no sistema, e uma IA resume a situação de cada pedido e avança a etapa quando o e-mail mostra que ele andou.
 
 ---
 
@@ -92,7 +95,32 @@ Todo e-mail recebido fica na **Caixa de follow-up**, com os anexos e os pedidos 
 
 ![Caixa de follow-up](imagens/08-caixa-follow-up.png)
 
-### 5. Relatórios e vendas mensais
+### 5. IA que mantém os pedidos atualizados pelos e-mails
+
+As caixas de Gmail da operação mandam ao hub, a cada 2 horas, os e-mails enviados e recebidos que citam um pedido. Isso é feito por um **Google Apps Script** em cada conta, que lê só o texto e envia por uma rota protegida por segredo, sem encaminhar nada nem deixar rastro na caixa.
+
+Com esses e-mails, a **IA da Cloudflare (Workers AI)**:
+
+- escreve a **situação atual** de cada pedido em português, numa linha datada nas notas internas, trocando a anterior;
+- **avança a etapa** do pedido quando o e-mail mostra que ele andou (só para a frente, nunca marca como finalizado sozinha) e **reabre** pedidos finalizados por engano quando um e-mail recente mostra que continuam;
+- registra cada mudança no histórico como "IA (e-mail)", para que fique claro o que foi automático.
+
+E-mails recebidos viram um aviso **"E-mail recebido"** no sino, que fica pendente até alguém agir no pedido ou marcar como resolvido. A lista de pedidos tem uma aba **Atualizados por e-mail**.
+
+### 6. Relatório diário ao parceiro na China
+
+Todo dia a operação manda ao parceiro na China um e-mail em inglês, organizado por cliente, com os pontos de cada pedido. O hub monta esse relatório:
+
+- **Pontos do dia** tirados dos e-mails, com caixas de seleção e prévia ao vivo no formato exato que o parceiro já conhece; pontos abertos de dias anteriores ficam guardados e podem voltar com um clique.
+- Só entram os pedidos que dizem respeito ao parceiro; os demais continuam com a situação atualizada no hub.
+- A aba **Respostas** lê o e-mail de resposta do parceiro e usa a IA para separar a resposta de cada pedido.
+- **Abrir no Gmail** abre o e-mail pronto, com o texto no corpo, para revisar e enviar.
+
+### 7. Navio no mapa
+
+Cada pedido com embarque mostra o **navio num mapa ao vivo (VesselFinder)**, pelo número IMO do navio, junto com a rota (origem, transbordo e destino) tirada dos e-mails do agente de carga. Uma rotina a cada 15 minutos lê os e-mails novos e atualiza os embarques, e a página de Embarques tem uma aba **Com mapa**.
+
+### 8. Relatórios e vendas mensais
 
 - **Vendas mensais**: pedidos pelo mês do embarque, com Full amount, Invoice amount, margem bruta, comparação com o ano anterior e filtros por país e empresa.
 - **Relatório mensal de embarques**: importa e gera a planilha Excel no layout exato usado pela empresa, com **lançamento rápido** linha a linha (pedido e empresa novos são criados sozinhos).
@@ -102,15 +130,16 @@ Todo e-mail recebido fica na **Caixa de follow-up**, com os anexos e os pedidos 
 
 ![Relatório de follow-up](imagens/10-relatorio-follow-up.png)
 
-### 6. Importação e cadastros
+### 9. Importação e cadastros
 
 - Importação de pedidos por Excel ou CSV, com mapeamento de colunas, prévia, distinção entre célula vazia e inválida e gravação em lotes com barra de progresso. Reimportar o mesmo arquivo não duplica nada.
 - Cadastro de empresas e fornecedores com detecção e junção de **duplicadas** (nomes iguais ou parecidos, ignorando acentos e maiúsculas).
 
-### 7. App no celular, avisos e modo escuro
+### 10. Apps no celular e no Windows, avisos e modo escuro
 
 - **PWA** instalável no iPhone e no Android, com ícone próprio e página offline.
-- **Avisos no celular (Web Push)** para mudanças em pedidos e mensagens, implementados com chaves VAPID e sem serviço de terceiros.
+- **App para Windows** (Electron) com instalador próprio, baixado direto do hub por quem está logado: janela própria, fica perto do relógio ao fechar, abre ao ligar o computador e pode ser desligado pelo menu do ícone.
+- **Avisos no celular (Web Push)** e **notificações do Windows** para mudanças em pedidos, mensagens, embarques e e-mails recebidos. O Web Push foi implementado com chaves VAPID, sem serviço de terceiros.
 - **Modo claro e escuro**, lembrado também por cookie (funciona até em navegadores que bloqueiam o armazenamento local).
 - Layout pensado para celular e computador; interface em português e inglês.
 
@@ -120,7 +149,7 @@ Todo e-mail recebido fica na **Caixa de follow-up**, com os anexos e os pedidos 
 
 ![Lista de pedidos no modo escuro](imagens/12-pedidos-escuro.png)
 
-### 8. Administração, segurança e backups
+### 11. Administração, segurança e backups
 
 - Contas novas esperam aprovação do administrador. Permissões por país, prefixo do pedido e ação (ver detalhes, editar, mudar etapa, notas, invoice, arquivos, excluir).
 - Auditoria, registro de atividades e presença da equipe.
@@ -138,15 +167,19 @@ Todo e-mail recebido fica na **Caixa de follow-up**, com os anexos e os pedidos 
 
 ```mermaid
 flowchart LR
-  U[Navegador / app instalado] -->|HTTPS| W[Cloudflare Worker<br/>Next.js via vinext]
-  G[Gmail da empresa] -->|encaminha| ER[Cloudflare<br/>Email Routing] -->|e-mail| W
+  U[Navegador, PWA<br/>ou app Windows] -->|HTTPS| W[Cloudflare Worker<br/>Next.js via vinext]
+  G[Gmail dos agentes<br/>de carga] -->|encaminha| ER[Cloudflare<br/>Email Routing] -->|e-mail| W
+  AS[Apps Script nas<br/>caixas da operação] -->|a cada 2 h, com segredo| W
+  W --> AI[Workers AI<br/>situação, etapa, respostas]
+  W --> VF[Mapa VesselFinder<br/>por IMO]
   W --> API[Rotas de API<br/>pedidos, follow-up, importação,<br/>embarques, relatórios, admin]
   API --> L[Regras de negócio<br/>permissões, auditoria,<br/>leitura dos e-mails]
   L --> D1[(D1 / SQLite)]
   L --> R2[(R2<br/>anexos, e-mails e backups)]
   W -. cron diário 03:00 .-> B[Backup do banco] --> R2
+  W -. cron a cada 15 min .-> L
   GA[GitHub Actions<br/>cron diário] -. exporta e compacta com senha .-> D1
-  W -. Web Push .-> U
+  W -. Web Push e avisos do Windows .-> U
 ```
 
 Um único **Cloudflare Worker** atende três tipos de entrada:
@@ -154,10 +187,10 @@ Um único **Cloudflare Worker** atende três tipos de entrada:
 | Entrada | O que faz |
 |---|---|
 | `fetch` | Páginas (Next.js App Router) e a API REST em `app/api/*` |
-| `scheduled` | Backup diário do banco para o R2 |
+| `scheduled` | Backup diário do banco para o R2 e, a cada 15 minutos, leitura dos e-mails novos (situação, etapa e embarque de cada pedido) |
 | `email` | Recebe os e-mails encaminhados dos agentes de carga, guarda no R2 e atualiza o embarque do pedido |
 
-- **Camadas**: telas em `app/`, API em `app/api/*` e regras de negócio isoladas em `lib/` (autenticação, permissões, pedidos, notificações, auditoria, importação, relatórios, leitura de e-mails, backups).
+- **Camadas**: telas em `app/`, API em `app/api/*` e regras de negócio isoladas em `lib/` (autenticação, permissões, pedidos, notificações, auditoria, importação, relatórios, leitura de e-mails, IA, relatório diário, rota do navio, backups).
 - **Dados**: Cloudflare **D1** (SQLite na borda) com SQL direto e migrações versionadas; arquivos, e-mails brutos e backups no **R2**.
 - **Sem servidor para manter**: tudo roda na borda da Cloudflare, com custo praticamente zero no volume atual.
 
@@ -169,7 +202,10 @@ Um único **Cloudflare Worker** atende três tipos de entrada:
 | Execução | Cloudflare Workers, com Next.js rodando sobre Vite pelo vinext |
 | Banco de dados | Cloudflare D1 (SQLite), SQL direto com migrações versionadas |
 | Arquivos | Cloudflare R2 (anexos, e-mails e backups) |
-| E-mail | Cloudflare Email Routing e postal-mime para ler os e-mails |
+| E-mail | Cloudflare Email Routing, postal-mime e Google Apps Script nas caixas do Gmail |
+| IA | Cloudflare Workers AI (resumo da situação em português, etapa do pedido, respostas do parceiro) |
+| Mapa | VesselFinder (navio pelo IMO) |
+| Desktop | Electron e electron-builder (instalador NSIS para Windows) |
 | Planilhas | ExcelJS (leitura e geração de .xlsx) |
 | Validação | zod |
 | Notificações | Web Push com chaves VAPID, sem serviço de terceiros |
@@ -184,13 +220,16 @@ Um único **Cloudflare Worker** atende três tipos de entrada:
 - **Migrações só aditivas**: nenhuma coluna ou tabela é apagada, o que permite voltar a versão do código sem perder dados.
 - **Vazio não é zero**: um pedido pode ser criado só com o número; campos não preenchidos ficam marcados como tal e não entram nas somas como zero.
 - **E-mail guardado antes de ser interpretado**: o e-mail bruto vai para o R2 antes de qualquer leitura; se o formato de um agente mudar, nada se perde.
+- **IA com limites claros**: a IA só avança a etapa para a frente, nunca finaliza um pedido sozinha, e cada mudança fica no histórico com o autor "IA (e-mail)". Anotações feitas à mão têm prioridade sobre a situação escrita pela IA.
+- **Sem rastro no Gmail**: o Apps Script só lê e envia o texto ao hub por uma rota protegida por segredo; nada é encaminhado nem aparece em Enviados.
+- **Dentro do plano gratuito**: leitura dos e-mails em lotes pequenos a cada 15 minutos e IA usada só onde agrega, para caber nas cotas do plano gratuito da Cloudflare.
 - **Importação resiliente**: gravação em lotes pequenos para respeitar o limite de consultas por requisição do D1, sem sobrescrever pedidos existentes.
 - **Tema escuro gerado**: o CSS do modo escuro é gerado automaticamente a partir do tema claro por um script, para que telas novas já nasçam com os dois temas.
-- **Teste de fluxo ponta a ponta**: um teste percorre as rotas da API contra um SQLite em memória (login, permissões, pedidos, conversa, importação, exclusões, follow-up, e-mails dos agentes), sem tocar no banco real.
+- **Teste de fluxo ponta a ponta**: um teste percorre as rotas da API contra um SQLite em memória (login, permissões, pedidos, conversa, importação, exclusões, follow-up, e-mails dos agentes, relatório diário), sem tocar no banco real.
 
 ## Processo de entrega
 
-- Versões incrementais (da v7 à v10.1), cada uma com guia de atualização: o que mudou, como aplicar, como verificar e como reverter.
+- Versões incrementais (da v7 à v10.11), cada uma com guia de atualização: o que mudou, como aplicar, como verificar e como reverter.
 - Propostas visuais em imagens aprovadas pelos usuários antes de mexer nas telas.
 - Antes de cada publicação: checagem de tipos, teste de fluxo, build e backup do banco; migração aplicada uma única vez, antes do deploy.
 - Teste local com banco separado antes de publicar e reversão rápida pelo histórico de versões do Worker.

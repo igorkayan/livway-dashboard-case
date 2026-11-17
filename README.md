@@ -105,7 +105,11 @@ Com esses e-mails, a **IA da Cloudflare (Workers AI)**:
 - **avança a etapa** do pedido quando o e-mail mostra que ele andou (só para a frente, nunca marca como finalizado sozinha) e **reabre** pedidos finalizados por engano quando um e-mail recente mostra que continuam;
 - registra cada mudança no histórico como "IA (e-mail)", para que fique claro o que foi automático.
 
-E-mails recebidos viram um aviso **"E-mail recebido"** no sino, que fica pendente até alguém agir no pedido ou marcar como resolvido. A lista de pedidos tem uma aba **Atualizados por e-mail**.
+| Histórico do pedido com a mudança feita pela IA | Situação atual, traduzida para o português |
+|---|---|
+| ![Histórico com IA](imagens/18-historico-ia.png) | ![Atualizados por e-mail](imagens/19-atualizados-por-email.png) |
+
+E-mails recebidos viram um aviso **"E-mail recebido"** no sino, que fica pendente até alguém agir no pedido ou marcar como resolvido. A lista de pedidos tem uma aba **Atualizados por e-mail**, com a situação de cada pedido logo abaixo do produto.
 
 ### 6. Relatório diário ao parceiro na China
 
@@ -116,9 +120,15 @@ Todo dia a operação manda ao parceiro na China um e-mail em inglês, organizad
 - A aba **Respostas** lê o e-mail de resposta do parceiro e usa a IA para separar a resposta de cada pedido.
 - **Abrir no Gmail** abre o e-mail pronto, com o texto no corpo, para revisar e enviar.
 
+![Relatório diário](imagens/20-relatorio-diario.png)
+
 ### 7. Navio no mapa
 
 Cada pedido com embarque mostra o **navio num mapa ao vivo (VesselFinder)**, pelo número IMO do navio, junto com a rota (origem, transbordo e destino) tirada dos e-mails do agente de carga. Uma rotina a cada 15 minutos lê os e-mails novos e atualiza os embarques, e a página de Embarques tem uma aba **Com mapa**.
+
+![Onde está o navio](imagens/21-navio-no-mapa.png)
+
+> O mapa é o do VesselFinder e mostra a posição pública (AIS) de um navio real. O pedido, a rota e as datas da imagem são fictícios.
 
 ### 8. Relatórios e vendas mensais
 
